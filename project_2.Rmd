@@ -1,0 +1,197 @@
+1. Load Dataset
+```{r}
+library(nycflights13)
+library(dplyr)
+
+# Filter the dataset for valid arrival delays
+flights_clean <- flights %>%
+  filter(!is.na(arr_delay), arr_delay < 500)
+
+# Compute mean and standard deviation
+mean_arr <- mean(flights_clean$arr_delay)
+sd_arr <- sd(flights_clean$arr_delay)
+
+```
+
+2. Create Bins
+```{r}
+# Define bins
+breaks_arr <- c(-Inf, -20, 0, 20, 60, Inf)
+observed_arr <- hist(flights_clean$arr_delay, breaks = breaks_arr, plot = FALSE)$counts
+
+
+```
+
+3. Expected Probabilities and Frequencies
+```{r}
+# Calculate class probabilities using Normal Distribution
+expected_probs_arr <- pnorm(breaks_arr[-1], mean = mean_arr, sd = sd_arr) -
+                      pnorm(breaks_arr[-length(breaks_arr)], mean = mean_arr, sd = sd_arr)
+
+# Calculate expected frequencies
+expected_arr <- sum(observed_arr) * expected_probs_arr
+
+
+```
+
+4.Chi-Square Componenets and Statistics
+```{r}
+# Compute Chi-Square components
+chisq_components_arr <- (observed_arr - expected_arr)^2 / expected_arr
+chisq_stat_arr <- sum(chisq_components_arr)
+
+# Degrees of freedom
+df_arr <- length(observed_arr) - 1 - 2
+critical_value_arr <- qchisq(0.95, df = df_arr)
+
+```
+
+```{r}
+# Create table for Set 1
+results_set1 <- data.frame(
+  Class = c("X ≤ -20", "-20 < X ≤ 0", "0 < X ≤ 20", "20 < X ≤ 60", "X > 60"),
+  Observed_Frequency = observed_arr,
+  Class_Probability = expected_probs_arr,
+  Expected_Frequency = expected_arr,
+  Chi2_Class_Component = chisq_components_arr
+)
+
+# Add totals
+results_set1 <- rbind(
+  results_set1,
+  data.frame(
+    Class = "Total",
+    Observed_Frequency = sum(observed_arr),
+    Class_Probability = 1.0,
+    Expected_Frequency = sum(expected_arr),
+    Chi2_Class_Component = sum(chisq_components_arr)
+  )
+)
+
+print(results_set1)
+
+
+```
+
+
+
+
+Set-2:
+
+1.Calculate InterArrival Times:
+
+
+```{r}
+# Compute inter-arrival times (use dep_time in minutes)
+flights_clean <- flights_clean %>%
+  arrange(dep_time) %>%
+  mutate(inter_arrival = c(NA, diff(dep_time)))
+
+# Remove NA and negatives
+flights_clean <- flights_clean %>% filter(inter_arrival > 0)
+
+# Compute mean and rate parameter
+mean_inter <- mean(flights_clean$inter_arrival)
+rate_inter <- 1 / mean_inter
+
+```
+
+2. Create Bins and Observed Frequencies
+```{r}
+# Define bins
+breaks_inter <- c(-Inf, 1, 2, 5, 10, Inf)
+observed_inter <- hist(flights_clean$inter_arrival, breaks = breaks_inter, plot = FALSE)$counts
+
+```
+
+3. Calculate Expected Probabilites and Freqeuncies
+```{r}
+# Calculate class probabilities using Exponential Distribution
+expected_probs_inter <- pexp(breaks_inter[-1], rate = rate_inter) -
+                        pexp(breaks_inter[-length(breaks_inter)], rate = rate_inter)
+
+# Calculate expected frequencies
+expected_inter <- sum(observed_inter) * expected_probs_inter
+
+```
+
+
+
+4. ChiSquare Component and Statistics
+```{r}
+# Compute Chi-Square components
+chisq_components_inter <- (observed_inter - expected_inter)^2 / expected_inter
+chisq_stat_inter <- sum(chisq_components_inter)
+
+# Degrees of freedom
+df_inter <- length(observed_inter) - 1 - 1
+critical_value_inter <- qchisq(0.95, df = df_inter)
+
+```
+
+5. Display
+```{r}
+# Create table for Set 2
+results_set2 <- data.frame(
+  Class = c("X ≤ 1", "1 < X ≤ 2", "2 < X ≤ 5", "5 < X ≤ 10", "X > 10"),
+  Observed_Frequency = observed_inter,
+  Class_Probability = expected_probs_inter,
+  Expected_Frequency = expected_inter,
+  Chi2_Class_Component = chisq_components_inter
+)
+
+# Add totals
+results_set2 <- rbind(
+  results_set2,
+  data.frame(
+    Class = "Total",
+    Observed_Frequency = sum(observed_inter),
+    Class_Probability = 1.0,
+    Expected_Frequency = sum(expected_inter),
+    Chi2_Class_Component = sum(chisq_components_inter)
+  )
+)
+
+print(results_set2)
+
+```
+
+```{r}
+unique(flights_clean$inter_arrival)
+```
+
+```{r}
+nrow(flights_clean)
+```
+```{r}
+# Load required libraries
+library(nycflights13)
+library(ggplot2)
+
+# Filter the data to clean out missing and extreme values
+flights_clean <- flights %>%
+  filter(!is.na(arr_delay), arr_delay < 500)  # Remove missing values and extreme outliers
+
+# Plot the distribution of arrival delays
+ggplot(flights_clean, aes(x = arr_delay)) +
+  geom_histogram(binwidth = 10, fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Distribution of Arrival Delays",
+    x = "Arrival Delay (minutes)",
+    y = "Frequency"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12)
+  )
+
+```
+
+
+
+
+
+
+
